@@ -32,7 +32,7 @@ func Genesis() *Block {
 function to convert block into bytes as BadgerDB can only store bytes
 **/
 func (b *Block) Serialize() []byte {
-	var res bytes.Buffer            //Store results of serializer
+	var res bytes.Buffer            //Store bytes in buffer memory
 	encoder := gob.NewEncoder(&res) //create new encoder
 
 	err := encoder.Encode(b) //returns an err
