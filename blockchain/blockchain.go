@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/dgraph-io/badger"
 )
@@ -24,13 +25,15 @@ type BlockChainIterator struct {
 //updated to store blockchain in the DB
 func InitBlockChain() *BlockChain {
 	var lastHash []byte
-
-	opts := badger.DefaultOptions(dbPath)
-	opts.Dir = dbPath
-	opts.ValueDir = dbPath
+	//create path if it does not exist
+	_, err := os.Stat(dbPath)
+	if os.IsNotExist(err) {
+		os.MkdirAll("./tmp/blocks", os.ModePerm)
+		fmt.Println("Path Created!")
+	}
 
 	//connect db
-	db, err := badger.Open(opts) //outputs pointer to db and err
+	db, err := badger.Open(badger.DefaultOptions("./tmp/blocks")) //outputs pointer to db and err
 	Handle(err)
 	err = db.Update(func(txn *badger.Txn) error { //txn is transaction
 		//Check blockchain exists
@@ -49,7 +52,7 @@ func InitBlockChain() *BlockChain {
 		} else {
 			item, err := txn.Get([]byte("lh"))
 			Handle(err)
-			lastHash, err = item.Value()
+			lastHash, err = item.ValueCopy(nil)
 			return err
 		}
 
@@ -66,7 +69,7 @@ func (chain *BlockChain) AddBlock(data string) {
 	err := chain.Database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte("lh")) //get last hash from DB
 		Handle(err)
-		lastHash, err = item.Value()
+		lastHash, err = item.ValueCopy(nil)
 
 		return err
 	})
@@ -84,10 +87,11 @@ func (chain *BlockChain) AddBlock(data string) {
 
 		return err
 	})
+	Handle(err)
 }
 
 //blockchain iterator to go over each block
-func (chain *BlockChain) iterator() *BlockChainIterator {
+func (chain *BlockChain) Iterator() *BlockChainIterator {
 	iter := &BlockChainIterator{chain.LastHash, chain.Database}
 
 	return iter
@@ -100,7 +104,7 @@ func (iter *BlockChainIterator) Next() *Block {
 	err := iter.Database.View(func(txn *badger.Txn) error { //badger's iter func
 		item, err := txn.Get(iter.CurrentHash)
 		Handle(err)
-		encodedBlock, err := item.Value()
+		encodedBlock, err := item.ValueCopy(nil)
 		block = Deserialize(encodedBlock)
 
 		return err
