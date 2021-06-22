@@ -36,7 +36,7 @@ func InitBlockChain() *BlockChain {
 	db, err := badger.Open(badger.DefaultOptions("./tmp/blocks")) //outputs pointer to db and err
 	Handle(err)
 	err = db.Update(func(txn *badger.Txn) error { //txn is transaction
-		//Check blockchain exists
+		//Check if blockchain exists
 		if _, err := txn.Get([]byte("lh")); err == badger.ErrKeyNotFound {
 			fmt.Println("No existing blockchain found")
 
